@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/static/bootstrap3.3.7/css/bootstrap.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style type="text/css">
+        #infoFormContainer {
+            position: absolute;
+            top: 300px;
+            display: none;
+            width: 300px;
+            background-color: #f3f3f3;
+            z-index: 2;
+        }
+
+        #otherInfoContainer {
+            position: absolute;
+            top: 150px;
+            left: 200px;
+            display: none;
+            width: 300px;
+            background-color: #f3f3f3;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+<!-- 网页遮盖层，出现角色列表时，将整个整个页面变暗-->
+<div id="pageCover"></div>
+<!-- 网页中各个部分的总容器-->
+<div id="container">
+    <!-- 功能按钮，由于button标签的selected状态不方便，使用a标签代替-->
+    <div id="buttonContainer" class="row">
+        <a id="addUnit" class="col-sm-offset-1 col-sm-1 btn btn-primary">添加角色</a>
+        <a id="sortCraft" class="btn btn-primary col-sm-offset-1 col-sm-1">排序</a>
+        <a id="getScheme" class="btn btn-primary col-sm-offset-1 col-sm-1">生成策略</a>
+        <a id="otherInfoSet" class="btn btn-primary col-sm-offset-1 col-sm-1">其他设置</a>
+        <div id="otherInfoContainer">
+            <form id="otherInfoForm" class="form-horizontal" role="form">
+                <div class="form-group">
+                    <label class="col-sm-offset-1 col-sm-4 control-label" style="text-align: left;">活动类型</label>
+                    <div class="col-sm-4">
+                        <select id="eventType" name="eventType" class="form-control">
+                            <option>N1</option>
+                            <option>N2</option>
+                            <option>N3</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-offset-1 col-sm-11 control-label" style="text-align: left;">推图进度</label>
+                    <div>
+                        <div class="col-sm-offset-1 col-sm-4">
+                            <input type="text" class="form-control" id="areaNum" name="areaNum"
+                                   style="text-align: right">
+                        </div>
+                        <label class="col-sm-2 control-label" style="text-align: center;">--</label>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" id="questNum" name="questNum">
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: center">
+                    <a id="otherInfoSetButton" class="btn btn-primary">完成</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- 用于选择的角色列表，使用脚本动态添加角色元素-->
+    <div id="unitListContainer" class="container">
+        角色列表
+        <div id="unitList"></div>
+        <a id="listCloseButton" class="btn btn-primary">关闭</a>
+    </div>
+    <!-- 用于列出被选中的角色以及设置相应角色的信息，使用脚本动态维护。
+        “需要添加删除功能”-->
+    <div id="selectedContainer" class="container">
+        <!-- 列出被选中的角色-->
+        <div id="selectedUnit"></div>
+        <!-- 用于设置装备信息的表单-->
+        <div id="infoFormContainer">
+            <form id="unitInfoForm" class="form-horizontal" role="form">
+                <div class="form-group">
+                    <label class="col-sm-offset-1 col-sm-4 control-label" style="text-align: left;">当前Rank</label>
+                    <div class="col-sm-4">
+                        <input type="text" id="curRank" name="curRank" class="form-control" value="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-offset-1 col-sm-11 control-label" style="text-align: left">当前装备</label>
+                    <div>
+                        <label class="checkbox-inline col-sm-offset-1 col-sm-5">
+                            <input name="cur1" type="checkbox">左上
+                        </label>
+                        <label class="checkbox-inline col-sm-5">
+                            <input name="cur2" type="checkbox">右上
+                        </label><br>
+                        <label class="checkbox-inline col-sm-offset-1 col-sm-5">
+                            <input name="cur3" type="checkbox">左
+                        </label>
+                        <label class="checkbox-inline col-sm-5">
+                            <input name="cur4" type="checkbox">右
+                        </label><br>
+                        <label class="checkbox-inline col-sm-offset-1 col-sm-5">
+                            <input name="cur5" type="checkbox">左下
+                        </label>
+                        <label class="checkbox-inline col-sm-5">
+                            <input name="cur6" type="checkbox">右下
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-offset-1 col-sm-4 control-label" style="text-align: left">目标Rank</label>
+                    <div class="col-sm-4">
+                        <input type="text" id="tarRank" name="tarRank" class="form-control" value="11">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-offset-1 col-sm-11 control-label" style="text-align: left">目标装备</label>
+                    <div>
+                        <label class="checkbox-inline col-sm-offset-1 col-sm-5">
+                            <input name="tar1" type="checkbox">左上
+                        </label>
+                        <label class="checkbox-inline col-sm-5">
+                            <input name="tar2" type="checkbox">右上
+                        </label><br>
+                        <label class="checkbox-inline col-sm-offset-1 col-sm-5">
+                            <input name="tar3" type="checkbox">左
+                        </label>
+                        <label class="checkbox-inline col-sm-5">
+                            <input name="tar4" type="checkbox">右
+                        </label><br>
+                        <label class="checkbox-inline col-sm-offset-1 col-sm-5">
+                            <input name="tar5" type="checkbox">左下
+                        </label>
+                        <label class="checkbox-inline col-sm-5">
+                            <input name="tar6" type="checkbox">右下
+                        </label>
+                    </div>
+                </div>
+                <div style="text-align: center">
+                    <a id="infoSetButton" class="btn btn-primary">确定</a>
+                    <a id="infoCancelButton" class="btn btn-primary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- 列出所需要的材料-->
+    <div id="craftContainer"></div>
+    <!-- 列出刷图建议-->
+    <div id="schemeContainer"></div>
+</div>
+<script type="text/javascript" src="/static/jsApi/jquery-1.11.0.min.js"></script>
+<script type="text/javascript" src="/static/jsFiles/functions.js"></script>
+<script type="text/javascript" src="/static/jsFiles/events.js"></script>
+<script type="text/javascript">
+    // 从所有角色中被选中的角色
+    var selectedUnit = [];
+    // 被选中角色中所点击的角色
+    var curUnit = null;
+
+    var unitInfos = [];
+    // 手动设置的最高rank
+    var maxRank = 11;
+    // 所需要的全部材料
+    var totalCraft = {};
+    // 每个角色对应所需的材料
+    var unitCraft = {};
+    // 显示在待选角色列表中的角色
+    var charaList = null;
+
+    var body = $("body");
+
+    var unitListContainer = $("#unitListContainer");
+    unitListContainer.css("left", (window.innerWidth - unitListContainer.width()) / 2);
+
+    // 为“添加角色”按钮添加点击事件，点击后，在网页中显示角色列表，调节某些元素样式
+    $("#addUnit").click(function () {
+        $("#unitListContainer").css("display", "block");
+        $("#pageCover").css("display", "block");
+        // 从服务器获取显示的各个角色信息
+        if (charaList == null) {
+            $.ajax({
+                url: "/list/info",
+                type: "POST",
+                data: JSON.stringify({
+                    item: 'unit'
+                }),
+                dataType: "json",
+                success: function (data) {
+                    if (data.hasOwnProperty("status") && data["status"] === "success") {
+                        delete data["status"];
+                        charaList = Object.create(data).__proto__;
+                        var unitList = document.getElementById("unitList");
+                        drawUnitList(charaList, unitList);
+                        console.log(data);
+                    } else {
+                        console.log(data);
+                    }
+                }
+            });
+        } else {
+            var unitList = document.getElementById("unitList");
+            drawUnitList(charaList, unitList);
+        }
+
+    });
+    // 表单的确定按钮，将表单中的内容处理成适当格式并发送给服务器计算材料数量
+    $("#infoSetButton").click(function () {
+        //console.log(curUnit);
+        var formInfo = infoProcess(getFormParas("unitInfoForm"), maxRank);
+        formInfo["unit_id"] = curUnit["unit_id"];
+        //console.log(formInfo);
+        $.ajax({
+            url: "/cal/craft",
+            type: "POST",
+            data: JSON.stringify(formInfo),
+            dataType: "json",
+            success: function (data) {
+                // 将计算得到的材料数量添加到当前总材料中，并刷新网页中已经显示的材料
+                if (data.hasOwnProperty("status") && data["status"] === "success") {
+                    delete data["status"];
+                    var craftContainer = document.getElementById("craftContainer");
+                    removeAllChild("craftContainer");
+                    // 将得到的结果添加到totalCraft中
+                    var unit_id = curUnit["unit_id"];
+                    // 得出新的材料数量相对于上次数量的相对变化量
+                    var rela_craft = Object.create(data).__proto__;
+                    if(unit_id in unitCraft){
+                        for(var t of Object.getOwnPropertyNames(unitCraft[unit_id])){
+                            if(t in data){
+                                rela_craft[t] = data[t] - unitCraft[unit_id][t];
+                            }else{
+                                rela_craft[t] = - unitCraft[unit_id][t];
+                            }
+                            //console.log(data[t]);
+                        }
+                        unitCraft[unit_id] = data;
+                    }else{
+                        unitCraft[unit_id] = data;
+                    }
+                    // console.log(rela_craft);
+                    // 使总材料数量进行相对的变化
+                    for (var item of Object.getOwnPropertyNames(rela_craft)) {
+                        if (totalCraft.hasOwnProperty(item)) {
+                            totalCraft[item] += rela_craft[item];
+                        } else {
+                            totalCraft[item] = rela_craft[item];
+                        }
+                        if(totalCraft[item] <= 0){
+                            delete totalCraft[item];
+                        }
+                    }
+                    console.log(totalCraft);
+                    // 将totalCraft中的材料绘制在网页中
+                    for (var item of Object.getOwnPropertyNames(totalCraft)) {
+                        //console.log(item + " " + totalCraft[item]);
+                        craftContainer.appendChild(createUnit(item, totalCraft[item], "equipment", true, {
+                            unitDiv: "col-sm-1",
+                            unitBox: "craftBox",
+                            img: "iconImg",
+                            text: "label label-default",
+                            input: "craftNumInput"
+                        }))
+                    }
+                } else {
+                    console.log(data);
+                }
+            }
+        });
+        $("#infoFormContainer").css("display", "none");
+    });
+    // 网页中的排序按钮，用于将网页中的材料按一定刷新重新显示
+    $("#sortCraft").click(function () {
+        var keys = Object.getOwnPropertyNames(totalCraft);
+        keys.sort(sortCraft);
+        var craftContainer = document.getElementById("craftContainer");
+
+        removeAllChild("craftContainer");
+        for (var key of keys) {
+            craftContainer.appendChild(createUnit(key, totalCraft[key], "equipment", true, {
+                unitDiv: "col-sm-1",
+                unitBox: "unitBox",
+                img: "iconImg",
+                text: "label label-default",
+                input: "craftNumInput"
+            }))
+        }
+    });
+
+    // 将被选中的角色添加到网页中，并刷新被选中角色的点击事件
+    body.on('click', ".iconImg", function () {
+
+        var clickedUnit = $(this).context.attributes["unit_id"].textContent;
+        //console.log(typeof(clickedUnit));
+        var newUnit = {
+            equip_id: clickedUnit,
+            equip_name: charaList[clickedUnit]
+        };
+        // console.log(clickedUnit);
+        delete charaList[clickedUnit];
+        drawUnitList(charaList, document.getElementById("unitList"));
+        if (!findObjectInList(selectedUnit, newUnit)) {
+            selectedUnit.push(newUnit);
+        }
+        drawSelectedUnit("selectedUnit", selectedUnit);
+    });
+
+    body.on("click", ".selectedImg", function () {
+
+        //console.log($(this).context.attributes["unit_id"].textContent);
+        curUnit = {
+            unit_id: $(this).context.attributes["unit_id"].textContent,
+        };
+        var infoFormContainer = $("#infoFormContainer");
+
+        var pos = {};
+        pos.top = $(this).offset().top + $(this).innerHeight() + 40;
+        pos.left = $(this).offset().left + $(this).innerWidth() / 2;
+        infoFormContainer.css("display", "block");
+        infoFormContainer.offset(pos);
+
+        //console.log(pos);
+        //console.log($(this).offset().left);
+    });
+
+</script>
+</body>
+</html>
