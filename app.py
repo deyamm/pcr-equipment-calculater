@@ -2,6 +2,7 @@ from flask import Flask, request
 from flask import render_template
 import json
 import functions as fun
+import os
 
 app = Flask(__name__)
 
@@ -57,6 +58,40 @@ def create_scheme():
     else:
         return json.dumps({'status': 'fail'}, indent=1, ensure_ascii=False)
 
+
+@app.route('/config/save', methods=['GET', 'POST'])
+def save_config():
+    recv = request.get_data()
+    if recv:
+        recv = json.loads(str(recv, encoding='utf-8'))
+        file_name = recv['fileName']
+        recv['flag'] = 'flag'
+        del recv['fileName']
+        with open('./static/unitConfig/' + file_name, 'w') as f:
+            f.write(json.dumps(recv, indent=1, ensure_ascii=False))
+
+        return json.dumps({'status': 'success'}, indent=1, ensure_ascii=False)
+    else:
+        return json.dumps({'status': 'fail'}, indent=1, ensure_ascii=False)
+
+
+@app.route('/config/read', methods=['GET', 'POST'])
+def read_config():
+    recv = request.get_data()
+    if recv:
+        recv = json.loads(str(recv, encoding='utf-8'))
+        file = './static/unitConfig/' + recv['fileName']
+        if os.path.exists(file):
+            with open(file, 'r') as f:
+                res = json.load(f)
+            if 'flag' in res and res['flag'] == 'flag':
+                del res['flag']
+                res['status'] = 'success'
+                return json.dumps(res, indent=1, ensure_ascii=False)
+            else:
+                return json.dumps({'status': 'failed'}, indent=1, ensure_ascii=False)
+        else:
+            return json.dumps({'status': 'fail'}, indent=1, ensure_ascii=False)
 
 if __name__ == '__main__':
     app.run()
