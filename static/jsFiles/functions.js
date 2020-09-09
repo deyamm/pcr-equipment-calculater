@@ -42,7 +42,8 @@ function createUnit(unit_id, unit_name, imgType, hasInput, classList) {
         var input = document.createElement("input");
         input.type = "text";
         $(input).addClass(classList["input"]);
-        $(input).val(0);
+        $(input).val(classList["inputValue"]);
+        input.setAttribute("unit_id", unit_id);
         unitBox.appendChild(input);
     }
 
@@ -61,7 +62,7 @@ function drawSelectedUnit(conID, selectedUnit) {
     var container = document.getElementById(conID);
     for (var item of selectedUnit) {
         //console.log(Object.getOwnPropertyNames(item));
-        container.appendChild(createUnit(item["equip_id"], item["equip_name"], "unit", false, {
+        container.appendChild(createUnit(item["unit_id"], item["unit_name"], "unit", false, {
             unitDiv: "col-sm-2",
             unitBox: "unitBox",
             img: "selectedImg",
@@ -109,7 +110,7 @@ function cmpObject(cur, tar) {
 
 /**
  * 获取指定id的表单数据，并返回包含对应内容的对象
- * @param id 表单id
+ * @param id str 表单id
  */
 function getFormParas(id) {
     var formValue = $(`#${id}`).serializeArray();
@@ -122,8 +123,8 @@ function getFormParas(id) {
 
 /**
  * 根据获得的表单数据，生成角色rank装备的信息
- * @param formInfo 包含表彰数据的对象
- * @param maxRank 设置的最大rank
+ * @param formInfo obj 包含表彰数据的对象
+ * @param maxRank str 设置的最大rank
  */
 function infoProcess(formInfo, maxRank) {
     var res = {};
@@ -166,21 +167,9 @@ function sortCraft(obj1, obj2) {
     return obj1.slice(2, 6) - obj2.slice(2, 6);
 }
 
-function getNeedCraft() {
-    var craftBoxes = document.getElementsByClassName("craftBox");
+function getMapScheme() {
     var needCraft = {};
-    needCraft.crafts = {};
-    for (var box of craftBoxes) {
-        var curBox = $(box);
-        //console.log(curBox);
-        var craftId = curBox[0].childNodes[0].attributes["unit_id"].nodeValue;
-        //console.log(craftId);
-        var needNum = parseInt(curBox[0].childNodes[1].childNodes[0].data);
-        //console.log(craftNum);
-        var hasNum = parseInt(curBox[0].childNodes[2].value);
-        //console.log(needNum);
-        needCraft.crafts[craftId] = needNum - hasNum;
-    }
+    needCraft.crafts = getNeedCraft(0);
     needCraft.maxMap = "";
     $.ajax({
         url: "/cal/scheme",
@@ -207,7 +196,7 @@ function getNeedCraft() {
             //document.getElementById("schemeContainer").innerHTML = data.scheme;
         }
     });
-    console.log(needCraft);
+    //console.log(needCraft);
 }
 
 function drawUnitList(charaList, unitList) {
@@ -220,5 +209,68 @@ function drawUnitList(charaList, unitList) {
             img: "iconImg",
             text: "label label-default"
         }));
+    }
+}
+
+/**
+ * 获取所需要的材料种类及数量
+ * @param flag int 返回的结果类型， 0：结果为需要数量-已有数量；
+ *                               1：结果将需要数量与已有数量以数组形式分别表示
+ * @return obj 存有所需材料种类及数量，key为材料代码，value为数量
+ */
+function getNeedCraft(flag) {
+    var craftBoxes = document.getElementsByClassName("craftBox");
+    var crafts = {};
+    for (var box of craftBoxes) {
+        var curBox = $(box);
+        //console.log(curBox);
+        var craftId = curBox[0].childNodes[0].attributes["unit_id"].nodeValue;
+        //console.log(craftId);
+        var needNum = parseInt(curBox[0].childNodes[1].childNodes[0].data);
+        //console.log(craftNum);
+        var hasNum = parseInt(curBox[0].childNodes[2].value);
+        //console.log(needNum);
+        if (flag === 0) {
+            crafts[craftId] = needNum - hasNum;
+        } else {
+            crafts[craftId] = [needNum, hasNum];
+        }
+    }
+    return crafts;
+}
+
+// 深拷贝一个对象
+function dCopy(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+/**
+ * 更新绘制页面中的被选择角色以及所需材料
+ * @param selectedUnit array 被选择角色数组
+ * @param totalCraft obj 所需材料各类
+ * @param drawType int 不同的绘制要求，1：只绘制被选中的角色；
+ *                                  2：只绘制所需材料
+ *                                  3：两者都绘制
+ * @param hasCraftNum obj 用于存所需要材料已有的数量
+ */
+function updateUnitCraft(selectedUnit, totalCraft, drawType, hasCraftNum) {
+    if (drawType === 1 || drawType === 3) {
+        drawSelectedUnit("selectedUnit", selectedUnit);
+    }
+
+    if (drawType === 2 || drawType === 3) {
+        var craftContainer = document.getElementById("craftContainer");
+        removeAllChild("craftContainer");
+
+        for (var item of Object.getOwnPropertyNames(totalCraft)) {
+            craftContainer.appendChild(createUnit(item, totalCraft[item], "equipment", true, {
+                unitDiv: "col-sm-1",
+                unitBox: "craftBox",
+                img: "craftImg",
+                text: "label label-default",
+                input: "craftNumInput",
+                inputValue: hasCraftNum[item]
+            }))
+        }
     }
 }

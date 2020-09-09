@@ -26,6 +26,11 @@
     cursor: pointer;
 }
 
+.craftImg {
+    width: 100%;
+    cursor: pointer;
+}
+
 .selectedImg {
     width: 100%;
     cursor: pointer;

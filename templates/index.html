@@ -67,6 +67,10 @@
                 </div>
             </form>
         </div>
+        <a id="saveConfig" class="btn btn-primary col-sm-offset-1 col-sm-1">存储配置</a>
+    </div>
+    <div class="col-sm-offset-1">
+        <input type="file" id="readConfig" name="configFile">
     </div>
     <!-- 用于选择的角色列表，使用脚本动态添加角色元素-->
     <div id="unitListContainer" class="container">
@@ -143,6 +147,7 @@
                 <div style="text-align: center">
                     <a id="infoSetButton" class="btn btn-primary">确定</a>
                     <a id="infoCancelButton" class="btn btn-primary">取消</a>
+                    <a id="deleteUnitButton" class="btn btn-primary">删除</a>
                 </div>
             </form>
         </div>
@@ -170,6 +175,10 @@
     var unitCraft = {};
     // 显示在待选角色列表中的角色
     var charaList = null;
+    // 存储各个角色的rank及装备
+    var unitEquipSet = {};
+    // 存储各个材料已有的数量
+    var hasCraftNum = {};
 
     var body = $("body");
 
@@ -192,12 +201,12 @@
                 success: function (data) {
                     if (data.hasOwnProperty("status") && data["status"] === "success") {
                         delete data["status"];
-                        charaList = Object.create(data).__proto__;
+                        charaList = dCopy(data);
                         var unitList = document.getElementById("unitList");
                         drawUnitList(charaList, unitList);
-                        console.log(data);
+                        // console.log(data);
                     } else {
-                        console.log(data);
+                        // console.log(data);
                     }
                 }
             });
@@ -211,6 +220,7 @@
     $("#infoSetButton").click(function () {
         //console.log(curUnit);
         var formInfo = infoProcess(getFormParas("unitInfoForm"), maxRank);
+        unitEquipSet[curUnit["unit_id"]] = dCopy(formInfo);
         formInfo["unit_id"] = curUnit["unit_id"];
         //console.log(formInfo);
         $.ajax({
@@ -222,23 +232,28 @@
                 // 将计算得到的材料数量添加到当前总材料中，并刷新网页中已经显示的材料
                 if (data.hasOwnProperty("status") && data["status"] === "success") {
                     delete data["status"];
-                    var craftContainer = document.getElementById("craftContainer");
-                    removeAllChild("craftContainer");
                     // 将得到的结果添加到totalCraft中
                     var unit_id = curUnit["unit_id"];
+
+                    for(var item of Object.getOwnPropertyNames(data)){
+                        if(!(item in hasCraftNum)){
+                            hasCraftNum[item] = 0;
+                        }
+                    }
+
                     // 得出新的材料数量相对于上次数量的相对变化量
-                    var rela_craft = Object.create(data).__proto__;
-                    if(unit_id in unitCraft){
-                        for(var t of Object.getOwnPropertyNames(unitCraft[unit_id])){
-                            if(t in data){
+                    var rela_craft = dCopy(data);
+                    if (unit_id in unitCraft) {
+                        for (var t of Object.getOwnPropertyNames(unitCraft[unit_id])) {
+                            if (t in data) {
                                 rela_craft[t] = data[t] - unitCraft[unit_id][t];
-                            }else{
-                                rela_craft[t] = - unitCraft[unit_id][t];
+                            } else {
+                                rela_craft[t] = -unitCraft[unit_id][t];
                             }
                             //console.log(data[t]);
                         }
                         unitCraft[unit_id] = data;
-                    }else{
+                    } else {
                         unitCraft[unit_id] = data;
                     }
                     // console.log(rela_craft);
@@ -249,28 +264,34 @@
                         } else {
                             totalCraft[item] = rela_craft[item];
                         }
-                        if(totalCraft[item] <= 0){
+                        if (totalCraft[item] <= 0) {
                             delete totalCraft[item];
                         }
                     }
-                    console.log(totalCraft);
+                    // console.log(totalCraft);
                     // 将totalCraft中的材料绘制在网页中
-                    for (var item of Object.getOwnPropertyNames(totalCraft)) {
-                        //console.log(item + " " + totalCraft[item]);
-                        craftContainer.appendChild(createUnit(item, totalCraft[item], "equipment", true, {
-                            unitDiv: "col-sm-1",
-                            unitBox: "craftBox",
-                            img: "iconImg",
-                            text: "label label-default",
-                            input: "craftNumInput"
-                        }))
-                    }
+                    updateUnitCraft(selectedUnit, totalCraft, 2, hasCraftNum);
                 } else {
                     console.log(data);
                 }
             }
         });
         $("#infoFormContainer").css("display", "none");
+    });
+    // 删除该角色并从总材料中删除相应部分
+    $("#deleteUnitButton").click(function () {
+        $("#infoFormContainer").css("display", "none");
+        var unit_id = curUnit["unit_id"];
+        selectedUnit.splice(selectedUnit.indexOf(unit_id), 1);
+        for (var item of Object.getOwnPropertyNames(unitCraft[unit_id])) {
+            // console.log(item);
+            totalCraft[item] = totalCraft[item] - unitCraft[unit_id][item];
+            if (totalCraft[item] <= 0) {
+                delete totalCraft[item];
+                delete hasCraftNum[item];
+            }
+        }
+        updateUnitCraft(selectedUnit, totalCraft, 3, hasCraftNum);
     });
     // 网页中的排序按钮，用于将网页中的材料按一定刷新重新显示
     $("#sortCraft").click(function () {
@@ -289,6 +310,77 @@
             }))
         }
     });
+    // 保存当前选择角色及所需材料列表到本地文件
+    $("#saveConfig").click(function () {
+        var fileName = prompt("请输入配置文件名");
+        if (fileName) {
+            if (fileName.split('.').reverse()[0] !== "json") {
+                fileName = fileName + ".json";
+            }
+            var config = {};
+            config.selectedUnit = selectedUnit;
+            config.unitCraft = unitCraft;
+            config.needCraft = getNeedCraft(1);
+            config.fileName = fileName;
+            $.ajax({
+                url: "/config/save",
+                type: "POST",
+                data: JSON.stringify(config),
+                dataType: "json",
+                success: function (data) {
+                    if (data.hasOwnProperty("status") && data["status"] === "success") {
+                        alert(config.fileName + "保存成功");
+                    } else {
+                        alert(config.fileName + "保存失败");
+                    }
+                }
+            })
+        }
+
+    });
+    // 从本地读取存有选择角色及材料的文件
+    $("#readConfig").change(function () {
+        var file = $(this).val();
+        var info = {};
+        info.fileName = file.split('\\').pop();
+
+        $.ajax({
+            url: "/config/read",
+            type: "POST",
+            data: JSON.stringify(info),
+            dataType: "json",
+            success: function (data) {
+                if (data.hasOwnProperty("status") && data["status"] === "success") {
+                    delete data["success"];
+                    alert(info.fileName + "文件存在");
+                    selectedUnit = data.selectedUnit;
+                    unitCraft = data.unitCraft;
+                    console.log(data);
+                    drawSelectedUnit("selectedUnit", selectedUnit);
+                    var craftContainer = document.getElementById("craftContainer");
+                    removeAllChild("craftContainer");
+
+                    for (var item of Object.getOwnPropertyNames(data.needCraft)) {
+                        totalCraft[item] = data.needCraft[item][0];
+                        hasCraftNum[item] = data.needCraft[item][1];
+                        craftContainer.appendChild(createUnit(item, data.needCraft[item][0], "equipment", true, {
+                            unitDiv: "col-sm-1",
+                            unitBox: "craftBox",
+                            img: "iconImg",
+                            text: "label label-default",
+                            input: "craftNumInput",
+                            inputValue: data.needCraft[item][1]
+                        }))
+                    }
+                } else {
+                    console.log(data);
+                    alert(info.fileName + "文件不存在");
+                }
+            }
+        });
+
+    });
+
 
     // 将被选中的角色添加到网页中，并刷新被选中角色的点击事件
     body.on('click', ".iconImg", function () {
@@ -296,8 +388,8 @@
         var clickedUnit = $(this).context.attributes["unit_id"].textContent;
         //console.log(typeof(clickedUnit));
         var newUnit = {
-            equip_id: clickedUnit,
-            equip_name: charaList[clickedUnit]
+            unit_id: clickedUnit,
+            unit_name: charaList[clickedUnit]
         };
         // console.log(clickedUnit);
         delete charaList[clickedUnit];
@@ -307,7 +399,7 @@
         }
         drawSelectedUnit("selectedUnit", selectedUnit);
     });
-
+    // 点击被选择的角色后，出现表单
     body.on("click", ".selectedImg", function () {
 
         //console.log($(this).context.attributes["unit_id"].textContent);
@@ -325,7 +417,10 @@
         //console.log(pos);
         //console.log($(this).offset().left);
     });
-
+    // 修改已有材料数量
+    body.on("change", ".craftNumInput", function(){
+        hasCraftNum[$(this).attr("unit_id")] = $(this).val();
+    });
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // 网页中的生成策略按钮，根据网页中的材料数量获取刷图建议并显示到网页中
 $("#getScheme").click(function () {
-    getNeedCraft();
+    getMapScheme();
 });
 
 $("#otherInfoSet").click(function () {
